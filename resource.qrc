@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/pre1">
+        <file>assets/null.png</file>
+    </qresource>
+</RCC>
