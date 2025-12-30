@@ -20,7 +20,15 @@ void LEDPage::setupUI()
     // 创建图片按钮
     QPushButton *imageButton = new QPushButton(this);
     imageButton->setFixedSize(220, 220); // 设置固定大小
-    imageButton->setStyleSheet("QPushButton { border: none; background-color: transparent; }"); // 无边框和背景
+    imageButton->setStyleSheet("QPushButton { border: none; "
+                               "background-color: transparent; "
+                               "}"
+                               "QPushButton:hover {"
+                               "  background-color: #2a2a2a;"
+                               "}"
+                               "QPushButton:pressed {"
+                               "  background-color: #3b3b3b;"
+                               "}");
     
     // 设置初始状态为off，显示dark.png
     QPixmap darkPixmap(":/pre1/assets/dark.png");
@@ -48,7 +56,15 @@ void LEDPage::LEDController()
     QTextToSpeech* speech = new QTextToSpeech();
     if(is_open == false){
         // 当前为off状态，切换为on状态
-        button->setStyleSheet("QPushButton { border: none; background-color: yellow; }");
+        button->setStyleSheet("QPushButton { border: none; "
+                              "background-color: yellow; "
+                              "}"
+                              "QPushButton:hover {"
+                              "  background-color: rgb(250,250,210);"
+                              "}"
+                              "QPushButton:pressed {"
+                              "  background-color: #3b3b3b;"
+                              "}");
         QPixmap lightPixmap(":/pre1/assets/light.png");
         if (!lightPixmap.isNull()) {
             button->setIcon(lightPixmap.scaled(200, 200, Qt::KeepAspectRatio, Qt::SmoothTransformation));
@@ -58,7 +74,16 @@ void LEDPage::LEDController()
         speech->say("灯已打开");
     }else{
         // 当前为on状态，切换为off状态
-        button->setStyleSheet("QPushButton { border: none; background-color: transparent; }");
+        button->setStyleSheet("QPushButton { border: none; "
+                              "background-color: transparent; "
+                              "}"
+                              "QPushButton:hover {"
+                              "  background-color: #2a2a2a;"
+                              "}"
+                              "QPushButton:pressed {"
+                              "  background-color: #3b3b3b;"
+                              "}"
+                              );
         QPixmap darkPixmap(":/pre1/assets/dark.png");
         if (!darkPixmap.isNull()) {
             button->setIcon(darkPixmap.scaled(200, 200, Qt::KeepAspectRatio, Qt::SmoothTransformation));
