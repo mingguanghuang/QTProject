@@ -1,4 +1,4 @@
-#include "deviceaddpage.h"
+#include ".\includes\deviceaddpage.h"
 
 
 DeviceAddPage::DeviceAddPage(QWidget *parent) : QWidget(parent)
@@ -19,5 +19,5 @@ void DeviceAddPage::setupUI()
     layout->addWidget(content);
     layout->addStretch();
     
-    this->setStyleSheet("background-color: #2a2a2a;");
+    this->setStyleSheet("background-color: #1a1a1a;");
 }

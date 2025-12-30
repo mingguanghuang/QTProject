@@ -1,4 +1,4 @@
-#include "voicecontrolpage.h"
+#include ".\includes\voicecontrolpage.h"
 
 
 VoiceControlPage::VoiceControlPage(QWidget *parent) : QWidget(parent)
@@ -21,5 +21,5 @@ void VoiceControlPage::setupUI()
     layout->addWidget(content);
     layout->addStretch();
     
-    this->setStyleSheet("background-color: #2a2a2a;");
+    this->setStyleSheet("background-color: #1a1a1a;");
 }

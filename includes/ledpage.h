@@ -5,7 +5,7 @@
 #include <QVBoxLayout>
 #include <QLabel>
 #include <QPushButton>
-
+#include <QDebug>
 class LEDPage : public QWidget
 {
     Q_OBJECT
@@ -14,6 +14,13 @@ public:
 
 private:
     void setupUI();
+
+    bool is_open = false;
+
+private slots:
+    void LEDController(void);
+
+
 };
 
 #endif // LEDPAGE_H

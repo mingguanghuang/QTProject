@@ -24,6 +24,7 @@ public:
 
 private:
     // 初始化界面
+    int currentPageIndex = 0;
     void setupUI();
     void connect_to_signal();
     void updateUI(int pageIndex);
@@ -31,7 +32,7 @@ private:
     QPushButton *LeftBtn;
     QPushButton *RightBtn;
     QLabel *title;
-    
+
     // 页面按钮
     QPushButton *ledBtn;
     QPushButton *voiceControlBtn;
@@ -39,7 +40,7 @@ private:
     QPushButton *deviceAddBtn;
     QPushButton *networkSettingBtn;
     QPushButton *securitySettingBtn;
-    
+
     // 页面容器
     QStackedWidget *stackedWidget;
     

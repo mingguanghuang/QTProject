@@ -1,4 +1,4 @@
-#include "networksettingpage.h"
+#include ".\includes\networksettingpage.h"
 
 
 NetworkSettingPage::NetworkSettingPage(QWidget *parent) : QWidget(parent)
@@ -20,5 +20,5 @@ void NetworkSettingPage::setupUI()
     layout->addWidget(content);
     layout->addStretch();
     
-    this->setStyleSheet("background-color: #2a2a2a;");
+    this->setStyleSheet("background-color: #1a1a1a;");
 }

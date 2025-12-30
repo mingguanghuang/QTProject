@@ -11,24 +11,11 @@ TARGET = ui-hmg
 TEMPLATE = app
 
 
-HEADERS += \
-           widget.h \
-           ledpage.h \
-           voicecontrolpage.h \
-           voicesettingpage.h \
-           deviceaddpage.h \
-           networksettingpage.h \
-           securitysettingpage.h
+HEADERS += $$files(includes/*.h, true)
+           
 
-SOURCES += \
-           main.cpp \
-           widget.cpp \
-           ledpage.cpp \
-           voicecontrolpage.cpp \
-           voicesettingpage.cpp \
-           deviceaddpage.cpp \
-           networksettingpage.cpp \
-           securitysettingpage.cpp
+
+SOURCES += $$files(src/*.cpp, true)
 
 TRANSLATIONS += ui-hmg_zh_CN.ts
 

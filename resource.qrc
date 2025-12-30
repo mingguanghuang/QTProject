@@ -1,5 +1,7 @@
 <RCC>
     <qresource prefix="/pre1">
         <file>assets/null.png</file>
+        <file>assets/light.png</file>
+        <file>assets/dark.png</file>
     </qresource>
 </RCC>

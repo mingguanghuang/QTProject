@@ -1,11 +1,11 @@
 // widget.cpp
-#include "widget.h"
-#include "ledpage.h"
-#include "voicecontrolpage.h"
-#include "voicesettingpage.h"
-#include "deviceaddpage.h"
-#include "networksettingpage.h"
-#include "securitysettingpage.h"
+#include ".\includes\widget.h"
+#include ".\includes\ledpage.h"
+#include ".\includes\voicecontrolpage.h"
+#include ".\includes\voicesettingpage.h"
+#include ".\includes\deviceaddpage.h"
+#include ".\includes\networksettingpage.h"
+#include ".\includes\securitysettingpage.h"
 #include <QPushButton>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -18,6 +18,7 @@
 // 在构造函数中简化样式
 Widget::Widget(QWidget *parent)
     : QWidget(parent)
+
 {
     // 设置窗口属性
     this->setWindowTitle("控制面板");
@@ -205,9 +206,13 @@ void Widget::close_page(){
 }
 
 void Widget::Call(){
-    qDebug() << "正在召唤中";
-    QTextToSpeech* speech = new QTextToSpeech();
-    speech->say("正在召唤小神龙");
+    if(currentPageIndex == 0){
+        qDebug() << "正在召唤中";
+        QTextToSpeech* speech = new QTextToSpeech();
+        speech->say("正在召唤小神龙");
+    }else{
+        switchToMainPage();
+    }
 }
 
 // 页面切换函数 - 更新索引号（因为主页面现在是索引0）
@@ -254,6 +259,7 @@ void Widget::switchToMainPage() {
     qDebug() << "返回主页面";
 }
 void Widget::updateUI(int pageIndex){
+    currentPageIndex = pageIndex;
     QString titleText;
     QString buttonText;
     if(pageIndex != 0){
@@ -264,14 +270,9 @@ void Widget::updateUI(int pageIndex){
         };
         titleText = pageTitles[pageIndex - 1] + "页面";
         buttonText = "返回";
-        LeftBtn->disconnect();
-        connect(LeftBtn, &QPushButton::clicked, this, &Widget::switchToMainPage);
     }else{
         titleText = "控制面板";
         buttonText = "召唤";
-        // 重新连接召唤功能
-        LeftBtn->disconnect();
-        connect(LeftBtn, &QPushButton::clicked, this, &Widget::Call);
     }
 
     // 更新UI
