@@ -1,5 +1,6 @@
 // main.cpp 或使用示例
 #include ".\includes\widget.h"
+
 #include <QApplication>
 
 int main(int argc, char *argv[])

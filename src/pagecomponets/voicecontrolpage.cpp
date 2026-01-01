@@ -1,25 +1,291 @@
 #include ".\includes\voicecontrolpage.h"
-
-
+#include <QMessageBox>
+#include <QDir>
+#include <QPixmap>
+#include <QTextToSpeech>
 VoiceControlPage::VoiceControlPage(QWidget *parent) : QWidget(parent)
 {
+    // 初始化变量（Qt 6 API,我的QT版本是6.9.3，如果你们运行报错了，就把版本更新一下）
+    audioSource = nullptr;
+    audioIODevice = nullptr;
+    audioTimer = nullptr;
+    model = nullptr;
+    recognizer = nullptr;
+    isListening = false;
+    
     setupUI();
+    loadIcons();
+}
+
+VoiceControlPage::~VoiceControlPage()
+{
+    stopVoiceRecognition();
+    if (recognizer) {
+        vosk_recognizer_free(recognizer);
+    }
+    if (model) {
+        vosk_model_free(model);
+    }
 }
 
 void VoiceControlPage::setupUI()
 {
     QVBoxLayout *layout = new QVBoxLayout(this);
     
-
-    
-    QLabel *content = new QLabel("这是语音控制页面\n功能待实现...");
-    content->setStyleSheet("font-size: 16px; color: #cccccc;");
-    content->setAlignment(Qt::AlignCenter);
-    
+    // 添加顶部间距
     layout->addStretch();
-
-    layout->addWidget(content);
+    
+    // 麦克风按钮
+    micButton = new QPushButton(this);
+    micButton->setFixedSize(100, 100);
+    micButton->setStyleSheet(
+        "QPushButton {"
+        "   border: 3px solid #4CAF50;"
+        "   border-radius: 50px;"
+        "   background-color: #2a2a2a;"
+        "}"
+        "QPushButton:hover {"
+        "   background-color: #3a3a3a;"
+        "   border-color: #66BB6A;"
+        "}"
+        "QPushButton:pressed {"
+        "   background-color: #4a4a4a;"
+        "}"
+    );
+    layout->addWidget(micButton, 0, Qt::AlignCenter);
+    
+    // 状态标签
+    statusLabel = new QLabel("点击麦克风开始语音识别", this);
+    statusLabel->setStyleSheet("font-size: 14px; color: #888888; margin: 10px;");
+    statusLabel->setAlignment(Qt::AlignCenter);
+    layout->addWidget(statusLabel);
+    
+    // 识别结果显示标签
+    recognitionLabel = new QLabel("", this);
+    recognitionLabel->setStyleSheet(
+        "font-size: 16px; color: #ffffff;"
+        "background-color: #2a2a2a;"
+        "border: 1px solid #555555;"
+        "border-radius: 10px;"
+        "padding: 15px;"
+        "min-height: 60px;"
+        "margin: 20px;"
+    );
+    recognitionLabel->setAlignment(Qt::AlignCenter);
+    recognitionLabel->setWordWrap(true);
+    layout->addWidget(recognitionLabel);
+    
+    // 添加底部间距
     layout->addStretch();
+    
+    // 连接按钮点击信号
+    connect(micButton, &QPushButton::clicked, this, &VoiceControlPage::toggleVoiceRecognition);
     
     this->setStyleSheet("background-color: #1a1a1a;");
+}
+
+void VoiceControlPage::loadIcons()
+{
+    // 创建简单的图标（可以使用图片资源进行替换，这里我懒得找图片了，直接让ai生成了一个icon图标）
+    QPixmap micPixmap(80, 80);
+    micPixmap.fill(Qt::transparent);
+    QPainter painter(&micPixmap);
+    painter.setRenderHint(QPainter::Antialiasing);
+    painter.setPen(QPen(QColor(76, 175, 80), 4));
+    painter.setBrush(QBrush(QColor(76, 175, 80)));
+    
+    // 麦克风图标
+    painter.drawEllipse(10, 10, 60, 60);
+    painter.setBrush(QBrush(QColor(42, 42, 42)));
+    painter.drawEllipse(20, 20, 40, 40);
+    painter.drawRect(35, 70, 10, 20);
+    
+    micIcon = QIcon(micPixmap);
+    
+    // 正在收听图标（红色）
+    QPixmap listeningPixmap(80, 80);
+    listeningPixmap.fill(Qt::transparent);
+    QPainter painter2(&listeningPixmap);
+    painter2.setRenderHint(QPainter::Antialiasing);
+    painter2.setPen(QPen(QColor(244, 67, 54), 4));
+    painter2.setBrush(QBrush(QColor(244, 67, 54)));
+    
+    // 脉动效果的麦克风图标
+    painter2.drawEllipse(10, 10, 60, 60);
+    painter2.setBrush(QBrush(QColor(42, 42, 42)));
+    painter2.drawEllipse(20, 20, 40, 40);
+    painter2.drawRect(35, 70, 10, 20);
+    
+    // 添加脉动效果
+    painter2.setPen(QPen(QColor(244, 67, 54, 100), 2));
+    painter2.setBrush(Qt::NoBrush);
+    painter2.drawEllipse(5, 5, 70, 70);
+    painter2.drawEllipse(0, 0, 80, 80);
+    
+    listeningIcon = QIcon(listeningPixmap);
+    
+    micButton->setIcon(micIcon);
+    micButton->setIconSize(QSize(80, 80));
+}
+
+void VoiceControlPage::toggleVoiceRecognition()
+{
+    if (isListening) {
+        stopVoiceRecognition();
+    } else {
+        startVoiceRecognition();
+    }
+}
+//加载模型时更新ui需要使用异步加载或创建多线程，这里就不详细写这个了
+// void VoiceControlPage::LoaddingStatusUI(){
+//     statusLabel->setText("正在加载模型...");
+//     statusLabel->setStyleSheet("font-size: 14px; color: #4CAF50; margin: 10px;");
+// }
+void VoiceControlPage::startVoiceRecognition()
+{
+
+    QTextToSpeech* speech = new QTextToSpeech();
+    // LoaddingStatusUI();
+    speech->say("正在加载模型");
+    // 检查Vosk模型路径
+    QString modelPath = "E:/vosk-model-cn/vosk-model-cn-0.22"; // 请根据实际路径修改
+    if (!QDir(modelPath).exists()) {
+        QMessageBox::warning(this, "错误", "Vosk模型路径不存在，请检查路径配置");
+        return;
+    }
+    
+    // 加载Vosk模型
+    model = vosk_model_new(modelPath.toLocal8Bit().constData());
+    if (!model) {
+        QMessageBox::warning(this, "错误", "无法加载Vosk模型");
+        return;
+    }
+    
+    // 创建识别器
+    recognizer = vosk_recognizer_new(model, 16000.0);
+    if (!recognizer) {
+        QMessageBox::warning(this, "错误", "无法创建语音识别器");
+        vosk_model_free(model);
+        model = nullptr;
+        return;
+    }
+    
+    // 设置音频格式（Qt 6 API）
+    QAudioFormat format;
+    format.setSampleRate(16000);
+    format.setChannelCount(1);
+    format.setSampleFormat(QAudioFormat::Int16);
+    
+    // 获取音频设备
+    QAudioDevice audioDeviceInfo = QMediaDevices::defaultAudioInput();
+    if (audioDeviceInfo.isNull()) {
+        QMessageBox::warning(this, "错误", "无法获取音频输入设备");
+        stopVoiceRecognition();
+        return;
+    }
+    
+    // 创建音频源
+    audioSource = new QAudioSource(audioDeviceInfo, format, this);
+    audioIODevice = audioSource->start();
+    
+    if (!audioIODevice) {
+        QMessageBox::warning(this, "错误", "无法启动音频输入设备");
+        stopVoiceRecognition();
+        return;
+    }
+    
+    // 创建定时器处理音频数据
+    audioTimer = new QTimer(this);
+    connect(audioTimer, &QTimer::timeout, this, &VoiceControlPage::processAudioData);
+    audioTimer->start(100); // 每100ms处理一次音频数据
+    
+    // 更新UI状态
+    isListening = true;
+    micButton->setIcon(listeningIcon);
+    statusLabel->setText("正在收听...");
+    statusLabel->setStyleSheet("font-size: 14px; color: #4CAF50; margin: 10px;");
+    recognitionLabel->setText("请开始说话...");
+    speech->say("请开始说话");
+}
+
+void VoiceControlPage::stopVoiceRecognition()
+{
+    if (audioTimer) {
+        audioTimer->stop();
+        delete audioTimer;
+        audioTimer = nullptr;
+    }
+    
+    if (audioSource) {
+        audioSource->stop();
+        delete audioSource;
+        audioSource = nullptr;
+        audioIODevice = nullptr;
+    }
+    
+    if (recognizer) {
+        vosk_recognizer_free(recognizer);
+        recognizer = nullptr;
+    }
+    
+    if (model) {
+        vosk_model_free(model);
+        model = nullptr;
+    }
+    
+    // 更新UI状态
+    isListening = false;
+    micButton->setIcon(micIcon);
+    statusLabel->setText("点击麦克风开始语音识别");
+    QTextToSpeech* speech = new QTextToSpeech();
+    speech->say("模型已关闭");
+    statusLabel->setStyleSheet("font-size: 14px; color: #888888; margin: 10px;");
+    recognitionLabel->setText("");
+}
+
+void VoiceControlPage::processAudioData()
+{
+    if (!audioIODevice || !recognizer) return;
+    
+    // 读取音频数据
+    QByteArray data = audioIODevice->readAll();
+    if (data.size() > 0) {
+        // 处理音频数据
+        if (vosk_recognizer_accept_waveform(recognizer, data.constData(), data.size())) {
+            // 获取最终识别结果
+            const char *result = vosk_recognizer_result(recognizer);
+            QString text = parseRecognitionResult(result);
+            if (!text.isEmpty()) {
+                updateRecognitionText(text);
+            }
+        } else {
+            // 获取部分识别结果
+            const char *partial = vosk_recognizer_partial_result(recognizer);
+            QString text = parseRecognitionResult(partial);
+            if (!text.isEmpty()) {
+                recognitionLabel->setText(text + " ...");
+            }
+        }
+    }
+}
+
+QString VoiceControlPage::parseRecognitionResult(const char *result)
+{
+    if (!result) return "";
+    
+    QJsonDocument doc = QJsonDocument::fromJson(result);
+    if (doc.isObject()) {
+        QJsonObject obj = doc.object();
+        if (obj.contains("text")) {
+            return obj["text"].toString();
+        } else if (obj.contains("partial")) {
+            return obj["partial"].toString();
+        }
+    }
+    return "";
+}
+
+void VoiceControlPage::updateRecognitionText(const QString &text)
+{
+    recognitionLabel->setText(text);
 }

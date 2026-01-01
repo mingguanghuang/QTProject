@@ -10,10 +10,10 @@ CONFIG += c++17
 TARGET = ui-hmg
 TEMPLATE = app
 
-
 HEADERS += $$files(includes/*.h, true)
            
-
+LIBS += -L$$PWD/lib -lvosk
+LIBS += -L"E:/vosk-model-cn/OpenBLAS-0.3.29_x64/lib" -lopenblas
 
 SOURCES += $$files(src/*.cpp, true)
 

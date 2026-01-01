@@ -1,11 +1,5 @@
 // widget.cpp
 #include ".\includes\widget.h"
-#include ".\includes\ledpage.h"
-#include ".\includes\voicecontrolpage.h"
-#include ".\includes\voicesettingpage.h"
-#include ".\includes\deviceaddpage.h"
-#include ".\includes\networksettingpage.h"
-#include ".\includes\securitysettingpage.h"
 #include <QPushButton>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -22,7 +16,7 @@ Widget::Widget(QWidget *parent)
 {
     // 设置窗口属性
     this->setWindowTitle("控制面板");
-    this->resize(600, 500);
+    this->resize(1000, 800);
     // 设置窗口透明度（0.0-1.0，1.0为完全不透明）
     this->setWindowOpacity(0.9); // 90%不透明度
 
@@ -67,37 +61,39 @@ void Widget::setupUI()
     stackedWidget = new QStackedWidget(this);
 
     // 创建各个页面
-    ledPage = new LEDPage(this);
+    controlPage = new ControlPage(this);
     voiceControlPage = new VoiceControlPage(this);
     voiceSettingPage = new VoiceSettingPage(this);
     deviceAddPage = new DeviceAddPage(this);
     networkSettingPage = new NetworkSettingPage(this);
     securitySettingPage = new SecuritySettingPage(this);
+    aiSettingPage = new AISettingPage(this);
 
     // 添加页面到堆叠窗口
-    stackedWidget->addWidget(ledPage);
+    stackedWidget->addWidget(controlPage);
     stackedWidget->addWidget(voiceControlPage);
     stackedWidget->addWidget(voiceSettingPage);
     stackedWidget->addWidget(deviceAddPage);
     stackedWidget->addWidget(networkSettingPage);
     stackedWidget->addWidget(securitySettingPage);
+    stackedWidget->addWidget(aiSettingPage);
 
     // 创建主页面（按钮列表页面）
     QWidget *mainPage = new QWidget(this);
     QVBoxLayout *mainPageLayout = new QVBoxLayout(mainPage);
 
     // 创建按钮 - 从上到下垂直排列
-    ledBtn = new QPushButton("LED 控制");
+    ControlBtn = new QPushButton("设备开关控制");
     voiceControlBtn = new QPushButton("语音控制");
     voiceSettingBtn = new QPushButton("语音设置");
     deviceAddBtn = new QPushButton("设备添加");
     networkSettingBtn = new QPushButton("网络设置");
     securitySettingBtn = new QPushButton("安全设置");
-
+    aiSettingBtn = new QPushButton("AI设置");
     // 设置按钮样式
     QString buttonStyle =
         "QPushButton {"
-        "  height: 50px;"
+        "  height: 80px;"
         "  font-size: 16px;"
         "  border: none;"
         "  color:#ffffff;"
@@ -113,20 +109,22 @@ void Widget::setupUI()
         "  background-color: #4b4b4b;"
         "}";
 
-    ledBtn->setStyleSheet(buttonStyle);
+    ControlBtn->setStyleSheet(buttonStyle);
     voiceControlBtn->setStyleSheet(buttonStyle);
     voiceSettingBtn->setStyleSheet(buttonStyle);
     deviceAddBtn->setStyleSheet(buttonStyle);
     networkSettingBtn->setStyleSheet(buttonStyle);
     securitySettingBtn->setStyleSheet(buttonStyle);
+    aiSettingBtn->setStyleSheet(buttonStyle);
 
     // 将按钮添加到主页面布局（垂直排列）
-    mainPageLayout->addWidget(ledBtn);
+    mainPageLayout->addWidget(ControlBtn);
     mainPageLayout->addWidget(voiceControlBtn);
     mainPageLayout->addWidget(voiceSettingBtn);
     mainPageLayout->addWidget(deviceAddBtn);
     mainPageLayout->addWidget(networkSettingBtn);
     mainPageLayout->addWidget(securitySettingBtn);
+    mainPageLayout->addWidget(aiSettingBtn);
     mainPageLayout->addStretch();
 
     // 将主页面添加到堆叠窗口（作为第一个页面）
@@ -192,12 +190,13 @@ void Widget::connect_to_signal(){
     qDebug() << "召唤连接:" << connected_Left;
 
     // 连接页面切换信号
-    connect(ledBtn, &QPushButton::clicked, this, &Widget::switchToLEDPage);
+    connect(ControlBtn, &QPushButton::clicked, this, &Widget::switchToControlPage);
     connect(voiceControlBtn, &QPushButton::clicked, this, &Widget::switchToVoiceControlPage);
     connect(voiceSettingBtn, &QPushButton::clicked, this, &Widget::switchToVoiceSettingPage);
     connect(deviceAddBtn, &QPushButton::clicked, this, &Widget::switchToDeviceAddPage);
     connect(networkSettingBtn, &QPushButton::clicked, this, &Widget::switchToNetworkSettingPage);
     connect(securitySettingBtn, &QPushButton::clicked, this, &Widget::switchToSecuritySettingPage);
+    connect(aiSettingBtn, &QPushButton::clicked, this, &Widget::switchToAISettingPage);
 }
 
 void Widget::close_page(){
@@ -216,7 +215,7 @@ void Widget::Call(){
 }
 
 // 页面切换函数 - 更新索引号（因为主页面现在是索引0）
-void Widget::switchToLEDPage() {
+void Widget::switchToControlPage() {
     stackedWidget->setCurrentIndex(1);
     updateUI(1);
     qDebug() << "切换到LED控制页面";
@@ -251,7 +250,11 @@ void Widget::switchToSecuritySettingPage() {
     updateUI(6);
     qDebug() << "切换到安全设置页面";
 }
-
+void Widget::switchToAISettingPage(){
+    stackedWidget->setCurrentIndex(7);
+    updateUI(7);
+    qDebug() << "切换到安全设置页面";
+}
 // 添加返回主页面的函数
 void Widget::switchToMainPage() {
     stackedWidget->setCurrentIndex(0);
@@ -265,8 +268,8 @@ void Widget::updateUI(int pageIndex){
     if(pageIndex != 0){
         // 子页面
         QStringList pageTitles = {
-            "LED控制", "语音控制", "语音设置",
-            "设备添加", "网络设置", "安全设置"
+            "设备开关控制", "语音控制", "语音设置",
+            "设备添加", "网络设置", "安全设置","AI设置"
         };
         titleText = pageTitles[pageIndex - 1] + "页面";
         buttonText = "返回";

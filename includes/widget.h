@@ -6,14 +6,21 @@
 #include <QDebug>
 #include <QStackedWidget>
 #include <QLabel>
-
+#include ".\includes\devicecontrol.h"
+#include ".\includes\voicecontrolpage.h"
+#include ".\includes\voicesettingpage.h"
+#include ".\includes\deviceaddpage.h"
+#include ".\includes\networksettingpage.h"
+#include ".\includes\securitysettingpage.h"
+#include ".\includes\AISettingPage.h"
 // 前向声明页面类
-class LEDPage;
+class ControlPage;
 class VoiceControlPage;
 class VoiceSettingPage;
 class DeviceAddPage;
 class NetworkSettingPage;
 class SecuritySettingPage;
+class AISettingPage;
 
 class Widget : public QWidget
 {
@@ -34,33 +41,36 @@ private:
     QLabel *title;
 
     // 页面按钮
-    QPushButton *ledBtn;
+    QPushButton *ControlBtn;
     QPushButton *voiceControlBtn;
     QPushButton *voiceSettingBtn;
     QPushButton *deviceAddBtn;
     QPushButton *networkSettingBtn;
     QPushButton *securitySettingBtn;
+    QPushButton *aiSettingBtn;
 
     // 页面容器
     QStackedWidget *stackedWidget;
     
     // 各个页面
-    LEDPage *ledPage;
+    ControlPage *controlPage;
     VoiceControlPage *voiceControlPage;
     VoiceSettingPage *voiceSettingPage;
     DeviceAddPage *deviceAddPage;
     NetworkSettingPage *networkSettingPage;
     SecuritySettingPage *securitySettingPage;
+    AISettingPage *aiSettingPage;
 
 private slots:
     void close_page(void);
     void Call(void);
-    void switchToLEDPage(void);
+    void switchToControlPage(void);
     void switchToVoiceControlPage(void);
     void switchToVoiceSettingPage(void);
     void switchToDeviceAddPage(void);
     void switchToNetworkSettingPage(void);
     void switchToSecuritySettingPage(void);
+    void switchToAISettingPage(void);
     void switchToMainPage(void);
 
 };
