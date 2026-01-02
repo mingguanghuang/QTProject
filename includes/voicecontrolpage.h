@@ -41,10 +41,10 @@ private:
     QLabel *statusLabel;
     
     // 音频相关（Qt 6 API）
-    QAudioSource *audioSource;
+    QAudioSource *audioSource; //在QT5中使用QAudioInput *audioInput 替换QAudioSource
     QIODevice *audioIODevice;
     QTimer *audioTimer;
-    
+
     // Vosk相关
     VoskModel *model;
     VoskRecognizer *recognizer;
