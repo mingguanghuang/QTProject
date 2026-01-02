@@ -3,15 +3,22 @@
 #include <QDir>
 #include <QPixmap>
 #include <QTextToSpeech>
+#include <QVBoxLayout>
+
 VoiceControlPage::VoiceControlPage(QWidget *parent) : QWidget(parent)
 {
-    // 初始化变量（Qt 6 API,我的QT版本是6.9.3，如果你们运行报错了，就把版本更新一下）
+    // 初始化变量
     audioSource = nullptr;
     audioIODevice = nullptr;
     audioTimer = nullptr;
     model = nullptr;
     recognizer = nullptr;
     isListening = false;
+    
+    // 初始化AI模型管理器
+    aiManager = AIModelManager::getInstance();
+    connect(aiManager, &AIModelManager::aiResponseReceived, this, &VoiceControlPage::onAiResponseReceived);
+    connect(aiManager, &AIModelManager::errorOccurred, this, &VoiceControlPage::onErrorOccurred);
     
     setupUI();
     loadIcons();
@@ -74,6 +81,21 @@ void VoiceControlPage::setupUI()
     recognitionLabel->setAlignment(Qt::AlignCenter);
     recognitionLabel->setWordWrap(true);
     layout->addWidget(recognitionLabel);
+    
+    // 新增：AI回复显示标签
+    aiResponseLabel = new QLabel("", this);
+    aiResponseLabel->setStyleSheet(
+        "font-size: 14px; color: #2196F3;"
+        "background-color: #1a2a2a;"
+        "border: 1px solid #2196F3;"
+        "border-radius: 10px;"
+        "padding: 15px;"
+        "min-height: 80px;"
+        "margin: 20px;"
+    );
+    aiResponseLabel->setAlignment(Qt::AlignCenter);
+    aiResponseLabel->setWordWrap(true);
+    layout->addWidget(aiResponseLabel);
     
     // 添加底部间距
     layout->addStretch();
@@ -288,4 +310,61 @@ QString VoiceControlPage::parseRecognitionResult(const char *result)
 void VoiceControlPage::updateRecognitionText(const QString &text)
 {
     recognitionLabel->setText(text);
+    
+    // 如果识别到有效文本，自动发送给AI模型
+    if (!text.isEmpty() && text != "请开始说话..." && !text.endsWith("...")) {
+        sendToAI(text);
+    }
+}
+
+void VoiceControlPage::sendToAI(const QString &text)
+{
+    // 显示发送状态
+    aiResponseLabel->setText("正在发送到AI模型...");
+    aiResponseLabel->setStyleSheet(
+        "font-size: 14px; color: #FFA500;"
+        "background-color: #2a2a1a;"
+        "border: 1px solid #FFA500;"
+        "border-radius: 10px;"
+        "padding: 15px;"
+        "min-height: 80px;"
+        "margin: 20px;"
+    );
+    
+    // 发送给AI模型
+    aiManager->sendMessageToModel(text);
+}
+
+void VoiceControlPage::onAiResponseReceived(const QString& response)
+{
+    // 更新AI回复显示
+    aiResponseLabel->setText(response);
+    aiResponseLabel->setStyleSheet(
+        "font-size: 14px; color: #2196F3;"
+        "background-color: #1a2a2a;"
+        "border: 1px solid #2196F3;"
+        "border-radius: 10px;"
+        "padding: 15px;"
+        "min-height: 80px;"
+        "margin: 20px;"
+    );
+    
+    // 这里不使用语音播报AI回复，会干扰到后续语音输入和模型的生成
+    // QTextToSpeech* speech = new QTextToSpeech();
+    // speech->say("AI回复：" + response);
+}
+
+void VoiceControlPage::onErrorOccurred(const QString& error)
+{
+    // 显示错误信息
+    aiResponseLabel->setText("错误: " + error);
+    aiResponseLabel->setStyleSheet(
+        "font-size: 14px; color: #f44336;"
+        "background-color: #2a1a1a;"
+        "border: 1px solid #f44336;"
+        "border-radius: 10px;"
+        "padding: 15px;"
+        "min-height: 80px;"
+        "margin: 20px;"
+    );
 }

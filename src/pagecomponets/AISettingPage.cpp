@@ -5,9 +5,18 @@
 
 AISettingPage::AISettingPage(QWidget *parent) : QWidget(parent)
 {
-    networkManager = new QNetworkAccessManager(this);
-    connect(networkManager, &QNetworkAccessManager::finished, this, &AISettingPage::onReplyFinished);
+    aiManager = AIModelManager::getInstance();
+    connect(aiManager, &AIModelManager::aiResponseReceived, this, &AISettingPage::onAiResponseReceived);
+    connect(aiManager, &AIModelManager::errorOccurred, this, &AISettingPage::onErrorOccurred);
+    
     setupUI();
+    
+    // 加载保存的设置
+    QString model, address, port;
+    aiManager->getModelSettings(model, address, port);
+    modelComboBox->setCurrentText(model);
+    addressLineEdit->setText(address);
+    portLineEdit->setText(port);
 }
 
 void AISettingPage::setupUI()
@@ -75,6 +84,11 @@ void AISettingPage::setupUI()
     // 连接信号槽
     connect(sendButton, &QPushButton::clicked, this, &AISettingPage::onSendMessage);
     connect(messageLineEdit, &QLineEdit::returnPressed, this, &AISettingPage::onSendMessage);
+    
+    // 当设置改变时更新模型设置
+    connect(modelComboBox, &QComboBox::currentTextChanged, this, &AISettingPage::updateModelSettings);
+    connect(addressLineEdit, &QLineEdit::textChanged, this, &AISettingPage::updateModelSettings);
+    connect(portLineEdit, &QLineEdit::textChanged, this, &AISettingPage::updateModelSettings);
 
     // 设置样式
     this->setStyleSheet("QGroupBox { color: #cccccc; font-weight: bold; }"
@@ -86,6 +100,14 @@ void AISettingPage::setupUI()
                        "background-color: #1a1a1a;");
 }
 
+void AISettingPage::updateModelSettings()
+{
+    QString model = modelComboBox->currentText();
+    QString address = addressLineEdit->text().trimmed();
+    QString port = portLineEdit->text().trimmed();
+    aiManager->setModelSettings(model, address, port);
+}
+
 void AISettingPage::onSendMessage()
 {
     QString message = messageLineEdit->text().trimmed();
@@ -94,84 +116,38 @@ void AISettingPage::onSendMessage()
         return;
     }
 
-    QString address = addressLineEdit->text().trimmed();
-    QString port = portLineEdit->text().trimmed();
-    
-    if (address.isEmpty() || port.isEmpty()) {
-        QMessageBox::warning(this, "提示", "请先设置模型地址和端口号");
-        return;
-    }
-
     // 添加用户消息到聊天框
     chatTextEdit->append("<div style='color: #4CAF50; margin: 5px 0;'><b>用户:</b> " + message + "</div>");
     messageLineEdit->clear();
 
-    // 发送请求到模型
-    sendRequestToModel(message);
-}
-
-void AISettingPage::sendRequestToModel(const QString &message)
-{
-    QString address = addressLineEdit->text().trimmed();
-    QString port = portLineEdit->text().trimmed();
-    
-    // 构建请求URL
-    QString urlString = QString("http://%1:%2/api/chat").arg(address,port);
-    QUrl url(urlString);
-    
-    // 创建JSON请求体
-    QJsonObject requestBody;
-    requestBody["message"] = message;
-    requestBody["model"] = modelComboBox->currentText();
-    
-    QJsonDocument doc(requestBody);
-    QByteArray data = doc.toJson();
-    
-    // 创建网络请求
-    QNetworkRequest request(url);
-    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-    
-    // 发送POST请求
-    networkManager->post(request, data);
-    
     // 显示等待提示
     chatTextEdit->append("<div style='color: #FFA500; margin: 5px 0;'><b>系统:</b> 正在请求AI模型...</div>");
+
+    // 发送请求到模型
+    aiManager->sendMessageToModel(message);
+    
+    // 自动滚动到底部
+    QScrollBar *scrollBar = chatTextEdit->verticalScrollBar();
+    scrollBar->setValue(scrollBar->maximum());
 }
 
-void AISettingPage::onReplyFinished(QNetworkReply *reply)
+void AISettingPage::onAiResponseReceived(const QString& response)
 {
-    if (reply->error() == QNetworkReply::NoError) {
-        QByteArray response = reply->readAll();
-        QJsonDocument doc = QJsonDocument::fromJson(response);
-        QJsonObject json = doc.object();
-        //获取模型返回结果中的"result"字段
-        QJsonObject resultObj = json.value("result").toObject();
-        // 解析JSON响应
-        QString tool = resultObj.value("tool").toString();
-        QString result = resultObj.value("result").toString();
-        QString nextAction = resultObj.value("next_action").toString();
-        QString suggestion = resultObj.value("suggestion").toString();
-        
-        // 格式化显示AI回复 - 使用多参数arg()方法
-        QString aiResponse = QString("<div style='color: #2196F3; margin: 5px 0;'>"
-                                   "<b>AI回复:</b><br>"
-                                   "<b>工具:</b> %1<br>"
-                                   "<b>结果:</b> %2<br>"
-                                   "<b>下一步:</b> %3<br>"
-                                   "<b>建议:</b> %4</div>")
-                                   .arg(tool.isEmpty() ? "无" : tool,
-                                        result.isEmpty() ? "无" : result,
-                                        nextAction.isEmpty() ? "无" : nextAction,
-                                        suggestion.isEmpty() ? "无" : suggestion);
-        
-        chatTextEdit->append(aiResponse);
-    } else {
-        QString errorMsg = QString("<div style='color: #f44336; margin: 5px 0;'><b>错误:</b> %1</div>")
-                          .arg(reply->errorString());
-        chatTextEdit->append(errorMsg);
-    }
+    QString aiResponse = QString("<div style='color: #2196F3; margin: 5px 0;'>"
+                               "<b>AI回复:</b><br>%1</div>").arg(response);
     
-    reply->deleteLater();
+    chatTextEdit->append(aiResponse);
+    
+    // 自动滚动到底部
+    QScrollBar *scrollBar = chatTextEdit->verticalScrollBar();
+    scrollBar->setValue(scrollBar->maximum());
+}
+
+void AISettingPage::onErrorOccurred(const QString& error)
+{
+    QString errorMsg = QString("<div style='color: #f44336; margin: 5px 0;'><b>错误:</b> %1</div>")
+                      .arg(error);
+    chatTextEdit->append(errorMsg);
     
     // 自动滚动到底部
     QScrollBar *scrollBar = chatTextEdit->verticalScrollBar();

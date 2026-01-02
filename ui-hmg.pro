@@ -1,4 +1,4 @@
-QT       += core gui texttospeech multimedia
+QT       += core gui texttospeech multimedia mqtt
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 CONFIG += c++17

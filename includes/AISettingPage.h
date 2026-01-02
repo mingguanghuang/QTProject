@@ -13,6 +13,7 @@
 #include <QJsonObject>
 #include <QJsonDocument>
 #include <QMessageBox>
+#include "aimodelmanager.h"
 
 class AISettingPage : public QWidget
 {
@@ -22,11 +23,12 @@ public:
 
 private slots:
     void onSendMessage();
-    void onReplyFinished(QNetworkReply *reply);
+    void onAiResponseReceived(const QString& response);
+    void onErrorOccurred(const QString& error);
 
 private:
     void setupUI();
-    void sendRequestToModel(const QString &message);
+    void updateModelSettings();
 
     // UI控件
     QComboBox *modelComboBox;
@@ -36,8 +38,8 @@ private:
     QLineEdit *messageLineEdit;
     QPushButton *sendButton;
     
-    // 网络管理器
-    QNetworkAccessManager *networkManager;
+    // AI模型管理器
+    AIModelManager* aiManager;
 };
 
 #endif // AISETTINGPAGE_H
