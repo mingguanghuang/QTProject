@@ -8,6 +8,7 @@
 #include <QSpacerItem>
 #include <QTextToSpeech>
 #include <QStackedWidget>
+#include ".\includes\voicemanager.h"
 
 // 在构造函数中简化样式
 Widget::Widget(QWidget *parent)
@@ -68,6 +69,9 @@ void Widget::setupUI()
     networkSettingPage = new NetworkSettingPage(this);
     securitySettingPage = new SecuritySettingPage(this);
     aiSettingPage = new AISettingPage(this);
+
+    // 设置VoiceControlPage使用ControlPage的MQTT客户端
+    voiceControlPage->setControlPage(controlPage);
 
     // 添加页面到堆叠窗口
     stackedWidget->addWidget(controlPage);
@@ -138,7 +142,7 @@ void Widget::setupUI()
 
     // 底部按钮 - 添加半透明效果
     QHBoxLayout *bottomLayout = new QHBoxLayout();
-    LeftBtn = new QPushButton("召唤");
+    LeftBtn = new QPushButton("连接");
     RightBtn = new QPushButton("取消");
 
     // 设置底部按钮样式 - 增大按钮尺寸
@@ -206,9 +210,14 @@ void Widget::close_page(){
 
 void Widget::Call(){
     if(currentPageIndex == 0){
-        qDebug() << "正在召唤中";
-        QTextToSpeech* speech = new QTextToSpeech();
-        speech->say("正在召唤小神龙");
+        qDebug() << "正在连接MQTT...";
+        VoiceManager* voiceManager = VoiceManager::getInstance();
+        voiceManager->say("正在连接MQTT服务器");
+        
+        // 调用ControlPage的MQTT连接方法
+        if (controlPage) {
+            controlPage->setupMQTT();
+        }
     }else{
         switchToMainPage();
     }
@@ -275,7 +284,7 @@ void Widget::updateUI(int pageIndex){
         buttonText = "返回";
     }else{
         titleText = "控制面板";
-        buttonText = "召唤";
+        buttonText = "连接";
     }
 
     // 更新UI

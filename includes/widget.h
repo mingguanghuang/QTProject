@@ -25,9 +25,13 @@ class AISettingPage;
 class Widget : public QWidget
 {
     Q_OBJECT
+
 public:
     Widget(QWidget *parent = nullptr);
     ~Widget();
+
+    // 添加公共访问方法
+    ControlPage* getControlPage() { return controlPage; }
 
 private:
     // 初始化界面

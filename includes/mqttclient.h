@@ -24,6 +24,9 @@ public:
     
     // 发布消息
     void publishMessage(const QString &topic, const QJsonObject &message);
+
+    // 执行实际的订阅操作
+    void performSubscription(const QString &topic);
     
     // 订阅主题
     void subscribeToTopic(const QString &topic);

@@ -4,6 +4,8 @@
 #include <QPixmap>
 #include <QTextToSpeech>
 #include <QVBoxLayout>
+#include ".\includes\voicemanager.h"
+#include ".\includes\devicecontrol.h"  // 添加ControlPage头文件
 
 VoiceControlPage::VoiceControlPage(QWidget *parent) : QWidget(parent)
 {
@@ -14,6 +16,7 @@ VoiceControlPage::VoiceControlPage(QWidget *parent) : QWidget(parent)
     model = nullptr;
     recognizer = nullptr;
     isListening = false;
+    controlPage = nullptr;  // 初始化为nullptr
     
     // 初始化AI模型管理器
     aiManager = AIModelManager::getInstance();
@@ -34,6 +37,7 @@ VoiceControlPage::~VoiceControlPage()
         vosk_model_free(model);
     }
 }
+
 
 void VoiceControlPage::setupUI()
 {
@@ -166,9 +170,9 @@ void VoiceControlPage::toggleVoiceRecognition()
 void VoiceControlPage::startVoiceRecognition()
 {
 
-    QTextToSpeech* speech = new QTextToSpeech();
+    VoiceManager* VoiceManager = VoiceManager::getInstance();
     // LoaddingStatusUI();
-    speech->say("正在加载模型");
+    VoiceManager->say("正在加载模型");
     // 检查Vosk模型路径
     QString modelPath = "E:/vosk-model-cn/vosk-model-cn-0.22"; // 请根据实际路径修改
     if (!QDir(modelPath).exists()) {
@@ -227,7 +231,7 @@ void VoiceControlPage::startVoiceRecognition()
     statusLabel->setText("正在收听...");
     statusLabel->setStyleSheet("font-size: 14px; color: #4CAF50; margin: 10px;");
     recognitionLabel->setText("请开始说话...");
-    speech->say("请开始说话");
+    VoiceManager->say("请开始说话");
 }
 
 void VoiceControlPage::stopVoiceRecognition()
@@ -259,8 +263,8 @@ void VoiceControlPage::stopVoiceRecognition()
     isListening = false;
     micButton->setIcon(micIcon);
     statusLabel->setText("点击麦克风开始语音识别");
-    QTextToSpeech* speech = new QTextToSpeech();
-    speech->say("模型已关闭");
+    VoiceManager* VoiceManager = VoiceManager::getInstance();
+    VoiceManager->say("模型已关闭");
     statusLabel->setStyleSheet("font-size: 14px; color: #888888; margin: 10px;");
     recognitionLabel->setText("");
 }
@@ -367,4 +371,65 @@ void VoiceControlPage::onErrorOccurred(const QString& error)
         "min-height: 80px;"
         "margin: 20px;"
     );
+}
+
+
+// 添加设置ControlPage的方法
+void VoiceControlPage::setControlPage(ControlPage* controlPage)
+{
+    this->controlPage = controlPage;
+    
+    if (controlPage && controlPage->getMQTTClient()) {
+        // 连接MQTT消息信号
+        connect(controlPage->getMQTTClient(), &MQTTClient::messageReceived, 
+                this, &VoiceControlPage::onMQTTMessageReceived);
+    }
+}
+
+// 修改MQTT消息接收处理函数
+void VoiceControlPage::onMQTTMessageReceived(const QString &topic, const QJsonObject &message)
+{
+    // qDebug() << "VoiceControlPage: 收到MQTT消息，主题:" << topic << "内容:" << message;
+    
+    // 检查是否为语音关闭命令
+    if (topic == "chenkaijie" && 
+        message.contains("command") && 
+        message["command"].toString() == "VOICE_SHUTDOWN" &&
+        message.contains("message_id") &&
+        message["message_id"].toString() == "message_voice") {
+        
+        qDebug() << "VoiceControlPage: 收到语音关闭命令";
+        handleVoiceShutdownCommand();
+    }
+}
+
+// 添加语音关闭命令处理函数
+void VoiceControlPage::handleVoiceShutdownCommand()
+{
+    // 停止语音识别
+    if (isListening) {
+        stopVoiceRecognition();
+    }
+    
+    // 显示状态信息
+    statusLabel->setText("语音功能已关闭");
+    statusLabel->setStyleSheet("font-size: 14px; color: #f44336; margin: 10px;");
+    recognitionLabel->setText("收到远程关闭指令，语音功能已禁用");
+    aiResponseLabel->setText("语音功能已被远程关闭");
+    aiResponseLabel->setStyleSheet(
+        "font-size: 14px; color: #f44336;"
+        "background-color: #2a1a1a;"
+        "border: 1px solid #f44336;"
+        "border-radius: 10px;"
+        "padding: 15px;"
+        "min-height: 80px;"
+        "margin: 20px;"
+    );
+    
+    
+    // 语音提示
+    VoiceManager* voiceManager = VoiceManager::getInstance();
+    voiceManager->say("语音功能已被远程关闭");
+    
+    qDebug() << "VoiceControlPage: 语音功能已关闭";
 }

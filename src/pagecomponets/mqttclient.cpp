@@ -33,45 +33,36 @@ bool MQTTClient::connectToBroker(const QString &host, quint16 port)
     m_client->setHostname(host);
     m_client->setPort(port);
     
-    // 移除客户端ID设置，让MQTT客户端自动生成或使用空客户端ID
-    // 这样只需要连接服务器就可以了
-    m_client->setClientId("");  // 设置为空字符串，让服务器自动分配客户端ID
+    // 设置唯一的客户端ID
+    QString clientId = QString("ui-hmg-client-%1").arg(QDateTime::currentMSecsSinceEpoch());
+    m_client->setClientId(clientId);
     
     m_client->connectToHost();
     m_reconnectTimer->start();
     
-    qDebug() << "正在连接MQTT服务器:" << host << ":" << port;
+    qDebug() << "正在连接MQTT服务器:" << host << ":" << port << "客户端ID:" << clientId;
     return true;
-}
-
-void MQTTClient::disconnectFromBroker()
-{
-    m_reconnectTimer->stop();
-    if (m_client->state() == QMqttClient::Connected) {
-        m_client->disconnectFromHost();
-    }
-}
-
-void MQTTClient::publishMessage(const QString &topic, const QJsonObject &message)
-{
-    if (m_client->state() != QMqttClient::Connected) {
-        emit errorOccurred("MQTT客户端未连接");
-        return;
-    }
-    
-    QJsonDocument doc(message);
-    QByteArray data = doc.toJson(QJsonDocument::Compact);
-    
-    QMqttTopicName topicName(topic);
-    m_client->publish(topicName, data);
-    
-    qDebug() << "发布消息到主题:" << topic << "内容:" << data;
 }
 
 void MQTTClient::subscribeToTopic(const QString &topic)
 {
-    // 直接订阅主题，不检查连接状态
-    // MQTT客户端会在连接建立后自动完成订阅
+    // 检查连接状态，如果未连接则延迟订阅
+    if (m_client->state() != QMqttClient::Connected) {
+        qDebug() << "MQTT未连接，将在连接成功后订阅主题:" << topic;
+        // 连接成功后自动订阅
+        connect(m_client, &QMqttClient::connected, this, [this, topic]() {
+            QTimer::singleShot(100, this, [this, topic]() {
+                performSubscription(topic);
+            });
+        });
+        return;
+    }
+    
+    performSubscription(topic);
+}
+
+void MQTTClient::performSubscription(const QString &topic)
+{
     QMqttSubscription *subscription = m_client->subscribe(topic);
     if (subscription) {
         qDebug() << "订阅主题:" << topic;
@@ -97,6 +88,30 @@ void MQTTClient::subscribeToTopic(const QString &topic)
     } else {
         qDebug() << "订阅主题失败:" << topic;
     }
+}
+
+void MQTTClient::disconnectFromBroker()
+{
+    m_reconnectTimer->stop();
+    if (m_client->state() == QMqttClient::Connected) {
+        m_client->disconnectFromHost();
+    }
+}
+
+void MQTTClient::publishMessage(const QString &topic, const QJsonObject &message)
+{
+    if (m_client->state() != QMqttClient::Connected) {
+        emit errorOccurred("MQTT客户端未连接");
+        return;
+    }
+    
+    QJsonDocument doc(message);
+    QByteArray data = doc.toJson(QJsonDocument::Compact);
+    
+    QMqttTopicName topicName(topic);
+    m_client->publish(topicName, data);
+    
+    qDebug() << "发布消息到主题:" << topic << "内容:" << data;
 }
 
 void MQTTClient::unsubscribeFromTopic(const QString &topic)
@@ -137,7 +152,7 @@ void MQTTClient::onMessageReceived(const QByteArray &message, const QMqttTopicNa
     
     if (doc.isObject()) {
         QJsonObject jsonObj = doc.object();
-        qDebug() << "收到消息，主题:" << topic.name() << "内容:" << jsonObj;
+        // qDebug() << "收到消息，主题:" << topic.name() << "内容:" << jsonObj;
         emit messageReceived(topic.name(), jsonObj);
     }
 }

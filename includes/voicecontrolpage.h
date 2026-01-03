@@ -16,6 +16,10 @@
 #include <QAudioFormat>
 #include "vosk_api.h"
 #include "aimodelmanager.h"
+// 移除MQTT客户端头文件包含
+
+// 前向声明
+class ControlPage;
 
 class VoiceControlPage : public QWidget
 {
@@ -24,11 +28,15 @@ public:
     explicit VoiceControlPage(QWidget *parent = nullptr);
     ~VoiceControlPage();
 
+    // 添加设置ControlPage的方法
+    void setControlPage(ControlPage* controlPage);
+
 private slots:
     void toggleVoiceRecognition();
     void processAudioData();
     void onAiResponseReceived(const QString& response);
     void onErrorOccurred(const QString& error);
+    void onMQTTMessageReceived(const QString &topic, const QJsonObject &message);  // 添加MQTT消息接收槽函数
 
 private:
     void setupUI();
@@ -38,6 +46,8 @@ private:
     QString parseRecognitionResult(const char *result);
     void updateRecognitionText(const QString &text);
     void sendToAI(const QString &text);
+    void handleVoiceShutdownCommand();  // 处理语音关闭命令
+    // 移除setupMQTT函数声明
 
     QPushButton *micButton;
     QLabel *recognitionLabel;
@@ -55,6 +65,9 @@ private:
     
     // AI模型管理器
     AIModelManager* aiManager;
+    
+    // 移除MQTT客户端指针，改为ControlPage指针
+    ControlPage* controlPage;  // 使用ControlPage的MQTT客户端
     
     // 图标
     QIcon micIcon;
